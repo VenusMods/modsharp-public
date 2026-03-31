@@ -1,6 +1,6 @@
 /* 
  * ModSharp
- * Copyright (C) 2023-2025 Kxnrl. All Rights Reserved.
+ * Copyright (C) 2023-2026 Kxnrl. All Rights Reserved.
  *
  * This file is part of ModSharp.
  * ModSharp is free software: you can redistribute it and/or modify

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <AssemblyName>Sharp.Core</AssemblyName>
         <RootNamespace>Sharp.Core</RootNamespace>
-        <Copyright>©2025 Kxnrl</Copyright>
+        <Copyright>©2026 Kxnrl</Copyright>
         <Authors>Kxnrl, BoneTM, laper32, Nukoooo</Authors>
         <RepositoryUrl>https://github.com/Kxnrl/ModSharp-public</RepositoryUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>

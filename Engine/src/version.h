@@ -1,6 +1,6 @@
 /* 
  * ModSharp
- * Copyright (C) 2023-2025 Kxnrl. All Rights Reserved.
+ * Copyright (C) 2023-2026 Kxnrl. All Rights Reserved.
  *
  * This file is part of ModSharp.
  * ModSharp is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@
 #define STR_HELPER(x) #x
 #define STRINGIFY(x) STR_HELPER(x)
 
-#define COPYRIGHT_YEAR 2025
+#define COPYRIGHT_YEAR 2026
 #define MAJOR_VERSION 2
 #define MINOR_VERSION 1
 #define VERSION_STRING STRINGIFY(MAJOR_VERSION) "." STRINGIFY(MINOR_VERSION)

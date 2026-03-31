@@ -7,7 +7,7 @@
         <Nullable>enable</Nullable>
         <AssemblyName>Sharp.Generator</AssemblyName>
         <RootNamespace>Sharp.Generator</RootNamespace>
-        <Copyright>©2025 Kxnrl</Copyright>
+        <Copyright>©2026 Kxnrl</Copyright>
         <Authors>Kxnrl, BoneTM, laper32, Nukoooo</Authors>
         <RepositoryUrl>https://github.com/Kxnrl/ModSharp-public</RepositoryUrl>
     </PropertyGroup>
