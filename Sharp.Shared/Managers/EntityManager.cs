@@ -66,17 +66,48 @@ public interface IEntityManager
     T? FindEntityByIndex<T>(EntityIndex index) where T : class, IBaseEntity;
 
     /// <summary>
-    ///     Find entity by Classname
+    ///     Find entity by Classname.
     /// </summary>
-    /// <param name="start">Entity cursor, null to start from beginning</param>
-    /// <param name="classname">Entity Classname</param>
+    /// <remarks>
+    ///     <para>
+    ///         <b>PERFORMANCE WARNING:</b><br />
+    ///         JThis method performs an <b>O(N) linear scan</b> over the global
+    ///         entity list
+    ///         and uses a wildcard string comparison (<c>V_CompareNameWithWildcards</c>), which is way heavier than a normal
+    ///         <c>strcmp</c>, for every entity.
+    ///     </para>
+    /// </remarks>
+    /// <param name="start">Entity cursor, null to start from beginning.</param>
+    /// <param name="classname">
+    ///     Entity Classname. This is <b>case-insensitive</b> and supports wildcards:
+    ///     <c>*</c> matches zero or more characters (e.g., <c>prop_*</c>), and <c>?</c> matches exactly one character.
+    /// </param>
+    /// <returns>The first entity matching the specified Classname, or <c>null</c> if no match is found.</returns>
     IBaseEntity? FindEntityByClassname(IBaseEntity? start, string classname);
 
     /// <summary>
-    ///     Find entity by Targetname
+    ///     Find entity by Targetname.
     /// </summary>
-    /// <param name="start">Entity cursor, null to start from beginning</param>
-    /// <param name="name">Entity Targetname</param>
+    /// <remarks>
+    ///     <para>
+    ///         <b>PERFORMANCE WARNING:</b><br />
+    ///         This method performs an <b>O(N) linear scan</b> over the global entity list and uses a wildcard string
+    ///         comparison (<c>V_CompareNameWithWildcards</c>), which is way heavier than a normal <c>strcmp</c>, for every
+    ///         entity.
+    ///     </para>
+    ///     <para>
+    ///         For the best performance, you should not call this function in every server tick/frame (e.g. OnGameFrame,
+    ///         EntityThink), and maintain your own entity list with targetname saved instead, assuming their name won't
+    ///         change.
+    ///     </para>
+    /// </remarks>
+    /// <param name="start">Entity cursor, null to start from beginning.</param>
+    /// <param name="name">
+    ///     Entity Targetname. This is <b>case-insensitive</b> and supports wildcards:
+    ///     <c>*</c> matches zero or more characters (e.g., <c>door_*</c>), and <c>?</c> matches exactly one character (e.g.,
+    ///     <c>door_?</c>).
+    /// </param>
+    /// <returns>The first entity matching the specified Targetname, or <c>null</c> if no match is found.</returns>
     IBaseEntity? FindEntityByName(IBaseEntity? start, string name);
 
     /// <summary>
@@ -88,37 +119,47 @@ public interface IEntityManager
     IBaseEntity? FindEntityInSphere(IBaseEntity? start, Vector center, float radius);
 
     /// <summary>
-    ///     Create and spawn entity <br />
-    ///     <remarks>
-    ///         No need to call <see cref="IBaseEntity.DispatchSpawn" />
-    ///     </remarks>
+    ///     Create and spawn entity (full pipeline: create + precache + dispatch spawn).
+    ///     Safe for all entity classes including weapons, but at the cost of performance
+    ///     (most of the cost is in the precache step).
+    ///     <br /><br />
+    ///     <b>For high-performance scenarios</b> (e.g. spawning many entities per tick),
+    ///     skip this method and call <see cref="CreateEntityByName" /> followed by
+    ///     <see cref="IBaseEntity.DispatchSpawn" /> directly. That path bypasses precache
+    ///     and is much faster, but <b>spawning weapons will crash</b>, and other entities may fail
+    ///     if their required resources have not been loaded yet.
+    ///     <br /><br />
+    ///     No need to call <see cref="IBaseEntity.DispatchSpawn" /> after this method.
     /// </summary>
     IBaseEntity? SpawnEntitySync(string classname, IReadOnlyDictionary<string, KeyValuesVariantValueItem> keyValues);
 
     /// <summary>
-    ///     Create and spawn entity <br />
-    ///     <remarks>
-    ///         No need to call <see cref="IBaseEntity.DispatchSpawn" /> <br />
-    ///         <b>&lt;T&gt;</b> is not checked, caller must ensure type correctness
-    ///     </remarks>
+    ///     Generic version of <see cref="SpawnEntitySync(string, IReadOnlyDictionary{string, KeyValuesVariantValueItem})" />.
+    ///     See that overload for cost and the high-performance alternative.
+    ///     <br /><br />
+    ///     <b>&lt;T&gt; is not checked</b> — caller must ensure type correctness.
+    ///     <br /><br />
+    ///     No need to call <see cref="IBaseEntity.DispatchSpawn" /> after this method.
     /// </summary>
     T? SpawnEntitySync<T>(string classname, IReadOnlyDictionary<string, KeyValuesVariantValueItem> keyValues)
         where T : class, IBaseEntity;
 
     /// <summary>
-    ///     Create entity <br />
-    ///     <remarks>
-    ///         Cannot create weapon-related entities, otherwise it will crash
-    ///     </remarks>
+    ///     Create an entity instance without spawning it. You must call
+    ///     <see cref="IBaseEntity.DispatchSpawn" /> afterwards to actually spawn it.
+    ///     <br /><br />
+    ///     This bypasses the precache step, so it is much faster than
+    ///     <see cref="SpawnEntitySync(string, IReadOnlyDictionary{string, KeyValuesVariantValueItem})" />,
+    ///     but <b>spawning weapons will crash</b> and other entities may fail if their required
+    ///     resources have not been loaded yet.
     /// </summary>
     IBaseEntity? CreateEntityByName(string classname);
 
     /// <summary>
-    ///     Create entity <br />
-    ///     <remarks>
-    ///         Cannot create weapon-related entities, otherwise it will crash <br />
-    ///         <b>&lt;T&gt;</b> is not checked, caller must ensure type correctness
-    ///     </remarks>
+    ///     Generic version of <see cref="CreateEntityByName(string)" />.
+    ///     See that overload for the precache caveat.
+    ///     <br /><br />
+    ///     <b>&lt;T&gt; is not checked</b> — caller must ensure type correctness.
     /// </summary>
     T? CreateEntityByName<T>(string classname) where T : class, IBaseEntity;
 

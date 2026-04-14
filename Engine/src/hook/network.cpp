@@ -22,11 +22,9 @@
 #include "bridge/forwards/forward.h"
 #include "gamedata.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "module.h"
-#include "vhook/hook.h"
-#include "manager/HookManager.h"
 
-#include "cstrike/entity/PlayerController.h"
 #include "cstrike/entity/PlayerPawn.h"
 #include "cstrike/interface/CGameEntitySystem.h"
 #include "cstrike/interface/INetChannel.h"
@@ -342,8 +340,8 @@ BeginMemberHookScope(IGameEventSystem)
 
 void InstallNetworkHooks()
 {
-    InstallVirtualHookAutoWithVTableManual(IGameEventSystem, PostEventAbstract, engine, CGameEventSystem);
+    VHOOK(IGameEventSystem, PostEventAbstract, engine, {.vtable = "CGameEventSystem"});
 
-    InstallStaticDetourManual(UTIL_DispatchEffect, address::server::UTIL_DispatchEffect);
-    InstallStaticDetourManual(UTIL_DispatchEffectFilter, address::server::UTIL_DispatchEffectFilter);
+    SHOOK(UTIL_DispatchEffect, {.address = reinterpret_cast<void*>(address::server::UTIL_DispatchEffect)});
+    SHOOK(UTIL_DispatchEffectFilter, {.address = reinterpret_cast<void*>(address::server::UTIL_DispatchEffectFilter)});
 }

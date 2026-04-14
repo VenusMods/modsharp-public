@@ -77,6 +77,7 @@ struct GameDataAddress
     std::string              m_FromVTable{};
     std::uintptr_t           m_FoundAddress = 0;
     std::string              m_File;
+    bool                     m_LoadOnDemand = false;
 };
 
 struct GameDataPatch
@@ -92,9 +93,7 @@ struct GameDataPatch
 struct StringHash
 {
     using is_transparent = void;
-    size_t operator()(const char* txt) const noexcept { return std::hash<std::string_view>{}(txt); }
     size_t operator()(std::string_view txt) const noexcept { return std::hash<std::string_view>{}(txt); }
-    size_t operator()(const std::string& txt) const noexcept { return std::hash<std::string>{}(txt); }
 };
 
 class GameData : public IGameData

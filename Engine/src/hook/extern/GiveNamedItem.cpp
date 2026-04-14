@@ -21,11 +21,11 @@
 #include "bridge/forwards/forward.h"
 #include "global.h"
 #include "manager/HookManager.h"
-#include "memory/memory_access.h"
 #include "module.h"
 #include "sdkproxy.h"
 #include "strtool.h"
-#include "vhook/hook.h"
+#include "hook/installer.h"
+#include "memory/zydis_utility.h"
 
 #include "cstrike/component/PlayerPawnComponent.h"
 #include "cstrike/entity/CBaseWeapon.h"
@@ -642,8 +642,6 @@ class LocalEntityListener : public IEntityListener
 
 #endif
 
-extern uintptr_t ResolveCallTarget(ZydisDecoder* decoder, ZydisDecodedInstruction* instr, ZydisDecodedOperand* operands, uintptr_t current_ip);
-
 static void PatchGiveNamedItemLimit()
 {
     static auto address = g_pGameData->GetAddress<uintptr_t>("CCSPlayer_ItemServices::GiveNamedItem");
@@ -653,7 +651,7 @@ static void PatchGiveNamedItemLimit()
     }
 
     auto V_stricmp_fast = modules::tier0->GetFunctionByName("V_stricmp_fast");
-    if (!V_stricmp_fast.IsValid())[[unlikely]]
+    if (!V_stricmp_fast.IsValid()) [[unlikely]]
     {
         FatalError("Failed to get V_stricmp_fast from tier0");
     }
@@ -703,11 +701,15 @@ static void PatchGiveNamedItemLimit()
             {
                 if (encoded_length == 2)
                 {
-                    SetMemoryAccess(pending_test_address, encoded_length, g_nReadWriteExecuteAccess);
-                    memcpy(pending_test_address, buffer.data(), encoded_length);
-                    SetMemoryAccess(pending_test_address, encoded_length, g_nReadExecuteAccess);
-
-                    FLOG("Successfully patched GiveNamedItem limit @ server+0x%llx", reinterpret_cast<uintptr_t>(pending_test_address) - modules::server->Base());
+                    if (auto unprotect_guard = safetyhook::unprotect(pending_test_address, encoded_length))
+                    {
+                        memcpy(pending_test_address, buffer.data(), encoded_length);
+                        FLOG("Successfully patched GiveNamedItem limit @ server+0x%llx", reinterpret_cast<uintptr_t>(pending_test_address) - modules::server->Base());
+                    }
+                    else
+                    {
+                        WARN("Failed to unprotect memory for patching GiveNamedItem");
+                    }
                     return;
                 }
                 WARN("Encoder generated instruction length mismatch (Expected 2, got %d)", encoded_length);
@@ -731,8 +733,8 @@ static void PatchGiveNamedItemLimit()
 
         if (instr.mnemonic == ZYDIS_MNEMONIC_CALL)
         {
-            uintptr_t final_target = ResolveCallTarget(&decoder, &instr, operands, address);
-            prev_was_stricmp = final_target == V_stricmp_fast;
+            uintptr_t final_target = ZydisUtility::ResolveCallTarget(&instr, operands, address);
+            prev_was_stricmp       = final_target == V_stricmp_fast;
         }
         else if (instr.mnemonic != ZYDIS_MNEMONIC_TEST)
         {
@@ -747,22 +749,22 @@ static void PatchGiveNamedItemLimit()
 
 void InstallGiveNamedItemHooks()
 {
-    InstallMemberDetourAutoSig(CCSPlayer_ItemServices, GiveNamedItem);
-    InstallMemberDetourAutoSig(CCSPlayer_ItemServices, GiveGlove);
-    InstallMemberDetourAutoSig(CCSPlayer_ItemServices, CanAcquire);
+    HOOK(CCSPlayer_ItemServices, GiveNamedItem);
+    HOOK(CCSPlayer_ItemServices, GiveGlove);
+    HOOK(CCSPlayer_ItemServices, CanAcquire);
 
-    InstallMemberDetourAutoSig(CBasePlayerPawn, FindMatchingWeaponsForTeamLoadout);
+    HOOK(CBasePlayerPawn, FindMatchingWeaponsForTeamLoadout);
 
     PatchGiveNamedItemLimit();
 
 #ifdef FIX_PLAYER_EQUIP_MANUALLY
 
-    InstallVirtualHookManualWithVTableAuto(CGamePlayerEquip, Precache, server, "CBaseEntity::Precache");
-    InstallMemberDetourAutoSig(CGamePlayerEquip, InputTriggerForAllPlayers);
-    InstallMemberDetourAutoSig(CGamePlayerEquip, InputTriggerForActivatedPlayer);
+    VHOOK(CGamePlayerEquip, Precache, server, {.gamedata = "CBaseEntity::Precache"});
+    HOOK(CGamePlayerEquip, InputTriggerForAllPlayers, {.address = schemas::FindDataMapInputFunc("CGamePlayerEquip", "InputTriggerForAllPlayers")});
+    HOOK(CGamePlayerEquip, InputTriggerForActivatedPlayer, {.address = schemas::FindDataMapInputFunc("CGamePlayerEquip", "InputTriggerForActivatedPlayer")});
 
-    InstallVirtualHookManualWithVTableAuto(CGamePlayerEquip, Use, server, "CBaseEntity::Use");
-    InstallVirtualHookManualWithVTableAuto(CGamePlayerEquip, Touch, server, "CBaseEntity::Touch");
+    VHOOK(CGamePlayerEquip, Use, server, {.gamedata = "CBaseEntity::Use"});
+    VHOOK(CGamePlayerEquip, Touch, server, {.gamedata = "CBaseEntity::Touch"});
 
     g_pHookManager->Hook_GameShutdown(HookType_Post, [] {
         for (auto& val : s_gamePlayerEquipMap | std::views::values)

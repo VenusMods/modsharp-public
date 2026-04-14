@@ -20,7 +20,7 @@
 #include "address.h"
 #include "bridge/forwards/forward.h"
 #include "global.h"
-#include "manager/HookManager.h"
+#include "hook/installer.h"
 
 #include "cstrike/entity/CBaseEntity.h"
 #include "cstrike/entity/PlayerController.h"
@@ -93,5 +93,5 @@ BeginMemberHookScope(CBaseEntity)
 
 void InstallDamageManagerHooks()
 {
-    InstallMemberDetourManual(CBaseEntity, DispatchTraceAttack, address::server::CBaseEntity_DispatchTraceAttack);
+    HOOK(CBaseEntity, DispatchTraceAttack, {.address = reinterpret_cast<void*>(address::server::CBaseEntity_DispatchTraceAttack)});
 }

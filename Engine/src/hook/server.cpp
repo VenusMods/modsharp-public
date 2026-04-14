@@ -21,14 +21,13 @@
 #include "bridge/forwards/forward.h"
 #include "gamedata.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "logging.h"
 #include "manager/ConVarManager.h"
 #include "manager/HookManager.h"
-#include "memory/memory_access.h"
 #include "module.h"
 #include "sdkproxy.h"
 #include "steamworks.h"
-#include "vhook/hook.h"
 
 #include "cstrike/interface/ICommandLine.h"
 #include "cstrike/interface/IGameSpawnGroupMgr.h"
@@ -290,38 +289,39 @@ static void PatchEnableVScript()
         auto op2 = &operands[1];
         if (op1->type != ZYDIS_OPERAND_TYPE_REGISTER || op1->reg.value != ZYDIS_REGISTER_EAX || op2->type != ZYDIS_OPERAND_TYPE_IMMEDIATE || op2->imm.value.s != 2)
             return false;
-
-        SetMemoryAccess(address, instr.length, g_nReadWriteExecuteAccess);
-        *address.Offset(1).As<uint8_t*>() = 0x1;
-        LOG("Patched CCSGOVScriptGameSystem::GetVScriptType @ server+0x%llx", address.GetPtr() - modules::server->Base());
-        SetMemoryAccess(address, instr.length, g_nReadExecuteAccess);
-
+        if (auto unprotect_guard = safetyhook::unprotect(address, instr.length))
+        {
+            *address.Offset(1).As<uint8_t*>() = 0x1;
+            LOG("Patched CCSGOVScriptGameSystem::GetVScriptType @ server+0x%llx", address.GetPtr() - modules::server->Base());
+            return true;
+        }
+        FERROR("Failed to unprotect memory region for CCSGOVScriptGameSystem::GetVScriptType");
         return true;
     });
 
-    InstallMemberDetourAutoSig(IScriptVM, CreateVM);
-    InstallMemberDetourAutoSig(CCSGOVScriptGameSystem, DestroyVM);
+    HOOK(IScriptVM, CreateVM);
+    HOOK(CCSGOVScriptGameSystem, DestroyVM);
 
     s_bPatchVScriptVM = true;
 }
 
 void InstallServerHooks()
 {
-    InstallMemberDetourAutoSig(CSource2Server, GameFrame);
-    InstallVirtualHookAutoWithVTableAuto(CSource2Server, GameServerSteamAPIActivated, server);
-    InstallVirtualHookAutoWithVTableAuto(CSource2Server, GameServerSteamAPIDeactivated, server);
+    HOOK(CSource2Server, GameFrame);
+    VHOOK(CSource2Server, GameServerSteamAPIActivated, server);
+    VHOOK(CSource2Server, GameServerSteamAPIDeactivated, server);
 
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GameInit, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GameShutdown, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GamePostInit, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GamePreShutdown, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GameActivate, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, GameDeactivate, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, OnPostSpawnGroupLoad, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, OnPrecacheResource, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, FrameUpdatePreEntityThink, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, FrameUpdatePostEntityThink, server);
-    InstallVirtualHookAutoWithVTableAuto(CGameRulesGameSystem, OnServerGamePostSimulate, server);
+    VHOOK(CGameRulesGameSystem, GameInit, server);
+    VHOOK(CGameRulesGameSystem, GameShutdown, server);
+    VHOOK(CGameRulesGameSystem, GamePostInit, server);
+    VHOOK(CGameRulesGameSystem, GamePreShutdown, server);
+    VHOOK(CGameRulesGameSystem, GameActivate, server);
+    VHOOK(CGameRulesGameSystem, GameDeactivate, server);
+    VHOOK(CGameRulesGameSystem, OnPostSpawnGroupLoad, server);
+    VHOOK(CGameRulesGameSystem, OnPrecacheResource, server);
+    VHOOK(CGameRulesGameSystem, FrameUpdatePreEntityThink, server);
+    VHOOK(CGameRulesGameSystem, FrameUpdatePostEntityThink, server);
+    VHOOK(CGameRulesGameSystem, OnServerGamePostSimulate, server);
 
     g_pScriptVM      = nullptr;
     g_pSpawnGroupMgr = nullptr;
@@ -330,7 +330,7 @@ void InstallServerHooks()
 
     if (CommandLine()->HasParam("-nobots"))
     {
-        InstallMemberDetourAutoSig(CNavMesh, GetNearestNavArea);
+        HOOK(CNavMesh, GetNearestNavArea);
     }
 
     if (CommandLine()->HasParam("-fucking_lua_map"))

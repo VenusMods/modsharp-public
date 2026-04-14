@@ -20,10 +20,10 @@
 #include "bridge/forwards/forward.h"
 #include "bridge/natives/ClientNatives.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "manager/ConVarManager.h"
 #include "manager/HookManager.h"
 #include "module.h"
-#include "vhook/hook.h"
 
 #include "CoreCLR/RuntimeProtobufMessage.h"
 
@@ -42,6 +42,7 @@
 #include <safetyhook.hpp>
 
 #include <algorithm>
+#include <random>
 #include <string>
 
 // #define CLIENT_HOOK_ASSERT
@@ -456,9 +457,11 @@ BeginStaticHookScope(HostSay)
         static auto starts_with_unicode = [](const std::string_view s) {
             const auto c = static_cast<uint8_t>(s[0]);
             // ASCII?
-            if ((c & 0x80) == 0) return false;
+            if ((c & 0x80) == 0)
+                return false;
             // Continuation byte?
-            if ((c & 0xC0) == 0x80) return false;
+            if ((c & 0xC0) == 0x80)
+                return false;
             // Leading-byte patterns for 2–4 byte sequences
             return (c & 0xE0) == 0xC0     // 2-byte
                    || (c & 0xF0) == 0xE0  // 3-byte
@@ -516,25 +519,26 @@ BeginStaticHookScope(ScriptPrintMessageChatAll)
 void InstallClientHooks()
 {
     // NOTE 修改初始Seed以避免不同服务器的Seed相同, 再更换服务器后可能出现问题
-    s_RandomSeed = (0 + std::rand() % (65535 - 0 + 1)) * (0 + std::rand() % (65535 - 0 + 1)) * 4357;
+    std::random_device rd;
+    s_RandomSeed = (static_cast<uint64_t>(rd()) << 32) | rd();
 
-    InstallVirtualHookAutoWithVTableAuto(CSource2GameClients, CheckConnect, server);
-    InstallMemberDetourAutoSig(CSource2GameClients, Connected);
-    InstallMemberDetourAutoSig(CSource2GameClients, Disconnect);
-    InstallMemberDetourAutoSig(CSource2GameClients, PutInServer);
-    InstallMemberDetourAutoSig(CSource2GameClients, Active);
-    InstallVirtualHookAutoWithVTableAuto(CSource2GameClients, SettingsChanged, server);
-    InstallMemberDetourAutoSig(CSource2GameClients, Command);
-    InstallMemberDetourAutoSig(CSource2GameClients, FullyConnected);
+    VHOOK(CSource2GameClients, CheckConnect, server);
+    HOOK(CSource2GameClients, Connected);
+    HOOK(CSource2GameClients, Disconnect);
+    HOOK(CSource2GameClients, PutInServer);
+    HOOK(CSource2GameClients, Active);
+    VHOOK(CSource2GameClients, SettingsChanged, server);
+    HOOK(CSource2GameClients, Command);
+    HOOK(CSource2GameClients, FullyConnected);
 
-    InstallMemberDetourAutoSig(CServerSideClient, ExecuteStringCommand);
-    InstallMemberDetourAutoSig(CServerSideClient, IsHearingClient);
-    InstallVirtualHookAutoWithVTableAuto(CServerSideClient, CLCMsg_VoiceData, engine);
-    InstallVirtualHookAutoWithVTableAuto(CServerSideClient, CLCMsg_RespondCvarValue, engine);
-    InstallMemberDetourAutoSig(CServerSideClient, SendNetMessage);
+    HOOK(CServerSideClient, ExecuteStringCommand);
+    HOOK(CServerSideClient, IsHearingClient);
+    VHOOK(CServerSideClient, CLCMsg_VoiceData, engine);
+    VHOOK(CServerSideClient, CLCMsg_RespondCvarValue, engine);
+    HOOK(CServerSideClient, SendNetMessage);
 
-    InstallStaticDetourAutoSig(HostSay);
-    InstallStaticDetourAutoSig(ScriptPrintMessageChatAll);
+    SHOOK(HostSay);
+    SHOOK(ScriptPrintMessageChatAll);
 
     g_pHookManager->Hook_ClientFullyConnect(HookType_Post, [](PlayerSlot_t slot) {
         const auto pClient = sv->GetClient(slot);

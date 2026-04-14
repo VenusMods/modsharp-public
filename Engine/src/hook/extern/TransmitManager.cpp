@@ -20,9 +20,9 @@
 #include "bridge/adapter.h"
 #include "gamedata.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "manager/ConVarManager.h"
 #include "manager/HookManager.h"
-#include "module.h"
 
 #include "cstrike/component/PlayerPawnComponent.h"
 #include "cstrike/entity/CBaseEntity.h"
@@ -843,7 +843,7 @@ public:
 
 void InstallTransmitHook()
 {
-    InstallMemberDetourAutoSig(ISource2GameEntities, CheckTransmit);
+    HOOK(ISource2GameEntities, CheckTransmit);
 
     g_pGameEntitySystem->AddListenerEntity(&s_listener);
 

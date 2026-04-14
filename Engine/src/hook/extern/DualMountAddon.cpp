@@ -19,6 +19,7 @@
 
 #include "gamedata.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "hook/network.h"
 #include "logging.h"
 #include "manager/ConVarManager.h"
@@ -322,8 +323,8 @@ void InstallDualMountAddonHooks()
         }
     });
 
-    InstallStaticDetourAutoSig(HostStateRequest);
-    InstallMemberDetourAutoSig(INetChannel, SendNetMessage);
+    SHOOK(HostStateRequest);
+    HOOK(INetChannel, SendNetMessage);
 }
 
 void DualMountAddonOverrideClientCheck(SteamId_t steamId, double time)

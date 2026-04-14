@@ -22,7 +22,7 @@ using Sharp.Shared.Enums;
 
 namespace Sharp.Core.Bridges.Natives;
 
-public static partial class Core
+public static unsafe partial class Core
 {
     public static partial string GetCommandLine();
 
@@ -68,7 +68,7 @@ public static partial class Core
 
     public static partial nint FindValveInterface(string module, string name);
 
-    public static partial bool SetMemoryAccess(nint address, long size, MemoryAccess access);
+    public static partial bool SetMemoryAccess(nint address, long size, MemoryAccess access, MemoryAccess* originalAccess);
 
     public static partial void RejectConnection(nint pNetAdr, NetworkDisconnectionReason reason);
 

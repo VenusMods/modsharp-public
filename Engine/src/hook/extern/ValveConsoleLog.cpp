@@ -17,11 +17,10 @@
  * along with ModSharp. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "gamedata.h"
 #include "global.h"
+#include "hook/installer.h"
 #include "logging.h"
 #include "manager/ConVarManager.h"
-#include "manager/HookManager.h"
 
 #include "cstrike/interface/ICvar.h"
 
@@ -106,8 +105,8 @@ void InstallValveConsoleLog()
         "Block valve's logging system. Default is \"false\". [0 = Default, 1 = Allow All, 2 = Block All]",
         FCVAR_RELEASE);
 
-    InstallStaticDetourAutoSig(LogDirect);
-    InstallStaticDetourAutoSig(LoggingSystem_IsChannelEnabled);
-    InstallStaticDetourAutoSig(LoggingSystem_IsChannelEnabled_Overload);
-    InstallMemberDetourAutoSig(CVProfile, OutputReport);
+    SHOOK(LogDirect);
+    SHOOK(LoggingSystem_IsChannelEnabled);
+    SHOOK(LoggingSystem_IsChannelEnabled_Overload);
+    HOOK(CVProfile, OutputReport);
 }

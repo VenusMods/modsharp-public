@@ -19,7 +19,7 @@
 
 #include "bridge/forwards/forward.h"
 #include "global.h"
-#include "manager/HookManager.h"
+#include "hook/installer.h"
 
 #include "cstrike/entity/PlayerController.h"
 #include "cstrike/type/CNetworkGameServer.h"
@@ -72,5 +72,5 @@ BeginMemberHookScope(CBasePlayerController)
 
 void InstallHandleCommandJoinTeamHooks()
 {
-    InstallMemberDetourAutoSig(CBasePlayerController, HandleCommandJoinTeam);
+    HOOK(CBasePlayerController, HandleCommandJoinTeam);
 }
