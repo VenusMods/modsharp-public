@@ -81,7 +81,7 @@ bool CSharpKeyValues3Helper::LoadFromCompiledFile(KeyValues3* kv, char* error, c
     }
 
     CResourceBlockInfo output{};
-    if (!Resource_FindBlockInfo(static_cast<const ResourceFileHeader_t*>(buffer.Base()), g_ResourceBlockId_Data, output))
+    if (!Resource_FindBlockInfo(static_cast<const ResourceFileHeader_t*>(buffer.Base()), g_ResourceBlockId_Phys, output))
     {
         StrCopy(error, 256, "Failed to load resource");
         return false;
@@ -105,7 +105,7 @@ bool CSharpKeyValues3Helper::LoadFromCompiledFile(KeyValues3* kv, char* error, c
     g_pFullFileSystem->Close(handle);
 
     CResourceBlockInfo output{};
-    if (!Resource_FindBlockInfo(reinterpret_cast<const ResourceFileHeader_t*>(buffer.data()), g_ResourceBlockId_Data, output))
+    if (!Resource_FindBlockInfo(reinterpret_cast<const ResourceFileHeader_t*>(buffer.data()), g_ResourceBlockId_Phys, output))
     {
         StrCopy(error, 256, "Failed to load resource");
         return false;
